@@ -1,0 +1,137 @@
+// main.ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { x } from "tinyexec";
+import path from "node:path";
+
+// tools.ts
+import { z } from "zod";
+var tools = {
+  speed_up: {
+    name: "Speed Up",
+    description: "Speed up a video",
+    input: {
+      input_file: z.string().describe("Path to input file"),
+      output_file: z.string().describe("Path to output file, output to the same directory if not specified").optional(),
+      max_fps: z.number().min(1).max(60).default(30).describe("Max FPS for the output file"),
+      speed_factor: z.number().min(0.1).max(10).default(2).describe("Speed factor for the output file, default to 2x sped up")
+    }
+  },
+  extract_audio: {
+    name: "Extract Audio",
+    description: "Extract audio as mp3 from a video",
+    input: {
+      input_file: z.string().describe("Path to input file"),
+      output_file: z.string().describe("Path to output file, output to the same directory if not specified").optional()
+    }
+  }
+};
+
+// main.ts
+var getOutputFilePath = (input, ext) => {
+  const input_dir = path.dirname(input);
+  const input_filename = path.basename(input, path.extname(input));
+  return path.join(input_dir, `${input_filename}_output${ext}`);
+};
+var server = new McpServer({
+  name: "ffmpeg-mcp",
+  version: "1.0.0"
+}, {
+  capabilities: {
+    logging: {}
+  }
+});
+server.tool(tools.speed_up.name, tools.speed_up.description, tools.speed_up.input, async (args) => {
+  const output_file = args.output_file || getOutputFilePath(args.input_file, path.extname(args.input_file));
+  server.server.sendLoggingMessage({
+    level: "debug",
+    data: {
+      input_file: args.input_file,
+      output_file
+    }
+  });
+  const result = x("ffmpeg", [
+    `-i`,
+    args.input_file,
+    `-filter:v`,
+    `setpts=${1 / args.speed_factor}*PTS,fps=fps=${args.max_fps}`,
+    `-af`,
+    `atempo=${args.speed_factor}`,
+    `-y`,
+    output_file
+  ]);
+  await server.server.sendLoggingMessage({
+    level: "debug",
+    data: {
+      started: true
+    }
+  });
+  let output = "";
+  for await (const line of result) {
+    output += line;
+    await server.server.sendLoggingMessage({
+      level: "debug",
+      data: {
+        line
+      }
+    });
+    await server.server.notification({
+      method: "notifications/progress",
+      params: {
+        data: line
+      }
+    });
+  }
+  if (result.exitCode !== 0) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Error: ${output}`
+        }
+      ],
+      isError: true
+    };
+  }
+  return {
+    content: [
+      {
+        type: "text",
+        text: `Successfully sped up video to: ${output_file}`
+      }
+    ]
+  };
+});
+server.tool(tools.extract_audio.name, tools.extract_audio.description, tools.extract_audio.input, async (args) => {
+  const output_file = args.output_file || getOutputFilePath(args.input_file, ".mp3");
+  const result = await x("ffmpeg", [
+    `-i`,
+    args.input_file,
+    `-vn`,
+    `-acodec`,
+    `mp3`,
+    `-y`,
+    output_file
+  ]);
+  if (result.exitCode !== 0) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Error: ${result.stderr}`
+        }
+      ],
+      isError: true
+    };
+  }
+  return {
+    content: [
+      {
+        type: "text",
+        text: `Successfully extracted audio to: ${output_file}`
+      }
+    ]
+  };
+});
+var transport = new StdioServerTransport;
+await server.connect(transport);

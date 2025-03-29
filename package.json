@@ -2,6 +2,15 @@
   "name": "ffmpeg-mcp",
   "version": "0.0.1",
   "type": "module",
+  "files": [
+    "dist",
+    "/cli.js"
+  ],
+  "bin": "./cli.js",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "bun build ./main.ts --packages external --outdir dist"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
     "tinyexec": "^1.0.1",
