@@ -4,6 +4,8 @@ import { x } from "tinyexec"
 import path from "node:path"
 import { tools } from "./tools"
 
+const ffmpeg = process.env.FFMPEG_PATH || "ffmpeg"
+
 const getOutputFilePath = (input: string, ext: string) => {
   const input_dir = path.dirname(input)
   const input_filename = path.basename(input, path.extname(input))
@@ -31,7 +33,7 @@ server.tool(
       args.output_file ||
       getOutputFilePath(args.input_file, path.extname(args.input_file))
 
-    const result = x("ffmpeg", [
+    const result = x(ffmpeg, [
       `-i`,
       args.input_file,
       `-filter:v`,
@@ -85,7 +87,7 @@ server.tool(
     const output_file =
       args.output_file || getOutputFilePath(args.input_file, ".mp3")
 
-    const result = await x("ffmpeg", [
+    const result = await x(ffmpeg, [
       `-i`,
       args.input_file,
       `-vn`,

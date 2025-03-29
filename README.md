@@ -6,10 +6,18 @@ This project is sponsored by [ChatWise](https://chatwise.app) - All-in-one LLM C
 
 ## Usage
 
-Add the following command to your MCP client:
+You need [ffmpeg](https://www.ffmpeg.org/) installed on your system first.
+
+Then add the following command to your MCP client:
 
 ```
 npx -y ffmpeg-mcp
+```
+
+By default it uses `ffmpeg` from your system path. You can also specify the path to `ffmpeg` by setting the `FFMPEG_PATH` environment variable, like:
+
+```
+FFMPEG_PATH=/path/to/ffmpeg
 ```
 
 ## Tools
