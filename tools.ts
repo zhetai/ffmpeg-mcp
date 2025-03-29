@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export const tools = {
   speed_up: {
-    name: "Speed Up",
+    name: "speed_up",
     description: "Speed up a video",
     input: {
       input_file: z.string().describe("Path to input file"),
@@ -28,7 +28,7 @@ export const tools = {
   },
 
   extract_audio: {
-    name: "Extract Audio",
+    name: "extract_audio",
     description: "Extract audio as mp3 from a video",
     input: {
       input_file: z.string().describe("Path to input file"),
