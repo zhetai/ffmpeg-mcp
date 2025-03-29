@@ -31,14 +31,6 @@ server.tool(
       args.output_file ||
       getOutputFilePath(args.input_file, path.extname(args.input_file))
 
-    server.server.sendLoggingMessage({
-      level: "debug",
-      data: {
-        input_file: args.input_file,
-        output_file,
-      },
-    })
-
     const result = x("ffmpeg", [
       `-i`,
       args.input_file,
@@ -50,13 +42,6 @@ server.tool(
       output_file,
     ])
 
-    await server.server.sendLoggingMessage({
-      level: "debug",
-      data: {
-        started: true,
-      },
-    })
-
     let output = ""
 
     for await (const line of result) {
@@ -65,12 +50,6 @@ server.tool(
         level: "debug",
         data: {
           line,
-        },
-      })
-      await server.server.notification({
-        method: "notifications/progress",
-        params: {
-          data: line,
         },
       })
     }
